@@ -33,7 +33,7 @@ router.get('/articles', async (c) => {
     });
 
     // Форматируем ответ
-    const formattedArticles = articles.map(article => {
+    const formattedArticles = articles.map((article: any) => {
       const translation = article.translations[0] || {};
       const subCategoryTranslation = article.category.translations[0] || {};
       
@@ -47,7 +47,7 @@ router.get('/articles', async (c) => {
           title: subCategoryTranslation.title || '',
           description: subCategoryTranslation.description || ''
         },
-        images: article.articleImages.map(img => ({
+        images: article.articleImages.map((img: any) => ({
           id: img.id,
           url: img.url,
           uploadedAt: img.uploadedAt
