@@ -45,7 +45,7 @@ router.get('/articles/article/:id', async (c) => {
         title: subCategoryTranslation.title || '',
         description: subCategoryTranslation.description || ''
       },
-      images: article.articleImages.map(img => ({
+      images: article.articleImages.map((img: any) => ({
         id: img.id,
         url: img.url,
         uploadedAt: img.uploadedAt
