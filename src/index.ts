@@ -45,12 +45,12 @@ const prismaMidleware = createMiddleware<HonoEnv>(async (c, next) => {
   await next()
 })
 
-app.use(prismaMidleware) 
-
 app.use('*', cors({
   origin: '*',
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
 }))
+
+app.use(prismaMidleware) 
 
 app.get('/', (c) => {
   return c.text('AquaWiki API - Добро пожаловать! Документация доступна по адресу: /docs')
