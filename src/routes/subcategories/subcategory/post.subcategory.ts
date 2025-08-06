@@ -64,7 +64,7 @@ const body = await c.req.json()
   )
 
   await prisma.translationSubCategory.createMany({
-    data: translationsData.map(item => ({
+    data: translationsData.map((item: any) => ({
       ...item,
       subCategoryId: subcategory.id
     }))
