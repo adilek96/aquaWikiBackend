@@ -28,6 +28,9 @@ import swaggerRouter from './routes/swagger.js'
 // Импорт роутера для токенов
 import tokenRouter from './routes/tokens/generate.tokens.js'
 
+import { cors } from 'hono/cors'
+
+
 interface HonoEnv {
   Variables: {
     prisma: PrismaClient; // Объявляем, что в Variables будет свойство 'prisma' типа PrismaClient
@@ -43,6 +46,11 @@ const prismaMidleware = createMiddleware<HonoEnv>(async (c, next) => {
 })
 
 app.use(prismaMidleware) 
+
+app.use('*', cors({
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+}))
 
 app.get('/', (c) => {
   return c.text('AquaWiki API - Добро пожаловать! Документация доступна по адресу: /docs')
