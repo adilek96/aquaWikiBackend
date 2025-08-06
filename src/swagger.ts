@@ -143,6 +143,10 @@ API использует Bearer токены для аутентификации
     {
       url: 'http://localhost:3000',
       description: 'Локальный сервер разработки'
+    },
+    {
+      url: 'https://aqua-wiki-backend.vercel.app/',
+      description: 'Продакшн сервер (Vercel)'
     }
   ],
   tags: [
