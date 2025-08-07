@@ -5,7 +5,7 @@ import { adminAuth } from '../../../middleware/auth.js';
 
 const router = new Hono<HonoEnv>()
 
-router.delete('/subcategories/subcategory', adminAuth, async (c) => {
+router.delete('/subcategories/subcategory/:id', adminAuth, async (c) => {
     const prisma = c.get('prisma'); 
     const id = c.req.param('id');
 

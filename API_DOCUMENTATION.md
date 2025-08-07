@@ -9,7 +9,7 @@ AquaWiki API - это RESTful API для управления контентом
 ### Базовый URL
 
 ```
-http://localhost:3000
+https://aqua-wiki-backend.vercel.app
 ```
 
 ### Аутентификация
