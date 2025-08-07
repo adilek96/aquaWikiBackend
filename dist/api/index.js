@@ -1,4 +1,4 @@
-import { serve } from "@hono/node-server";
+// import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { PrismaClient } from "@prisma/client";
 import { createMiddleware } from "hono/factory";
@@ -28,6 +28,14 @@ const prismaMidleware = createMiddleware(async (c, next) => {
   c.set("prisma", prisma);
   await next();
 });
+
+app.use(
+  "*",
+  cors({
+    origin: "*",
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  })
+);
 app.use(prismaMidleware);
 app.get("/", (c) => {
   return c.text(
@@ -67,4 +75,4 @@ process.on("SIGTERM", async () => {
   process.exit(0);
 });
 
-serve(app);
+// serve(app);
