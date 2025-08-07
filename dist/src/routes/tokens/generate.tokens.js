@@ -4,7 +4,7 @@ import { generateTokens } from '../../config/tokens.js';
 const router = new Hono();
 router.post('/tokens/generate', async (c) => {
     try {
-        const { adminToken, readToken } = generateTokens();
+        const { adminToken, readToken } = await generateTokens();
         return c.json({
             statusCode: 200,
             statusMessage: 'Tokens generated successfully',

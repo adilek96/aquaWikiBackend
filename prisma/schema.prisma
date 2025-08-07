@@ -81,3 +81,41 @@ model ArticleImages {
   url        String
   uploadedAt DateTime @default(now())
 }
+
+enum AquariumType {
+  FRESHWATER
+  SALTWATER
+  PALUDARIUM
+}
+
+enum Subtype {
+  FISHS
+  REPTILES
+  AMPHIBIANS
+  TURTLES
+  FROGS
+  CORALS
+  PLANTS
+  SHRIMPS
+  CRAYFISH
+  CRABS
+  SNAILS
+  STARFISHS
+}
+
+model TranslationInhabitant {
+  id           String     @id @default(cuid())
+  locale       String
+  title        String
+  inhabitant   Inhabitant @relation(fields: [inhabitantId], references: [id], onDelete: Cascade)
+  inhabitantId String
+}
+
+model Inhabitant {
+  id           String                  @id @default(cuid())
+  type         AquariumType[]
+  subtype      String
+  translations TranslationInhabitant[]
+  imageUrl     String
+  articleUrl   String
+}

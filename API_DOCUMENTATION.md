@@ -323,6 +323,142 @@ GET /articles?locale=ru&subCategoryId=subcategory_id
 }
 ```
 
+### 🐠 Обитатели
+
+#### Получить всех обитателей
+
+```http
+GET /inhabitants?locale=ru&type=fish
+```
+
+**Параметры**:
+
+- `locale` (опционально) - язык для переводов (`az`, `ru`, `en`)
+- `type` (опционально) - фильтр по типу обитателя
+
+**Ответ**:
+
+```json
+{
+  "statusCode": 200,
+  "statusMessage": "Success",
+  "inhabitants": [
+    {
+      "id": "inhabitant_id",
+      "type": ["fish", "marine"],
+      "subtype": "tropical",
+      "title": "Тропическая рыба",
+      "imageUrl": "https://example.com/fish.jpg",
+      "articleUrl": "https://example.com/article"
+    }
+  ]
+}
+```
+
+#### Получить обитателя по ID
+
+```http
+GET /inhabitants/inhabitant/{id}?locale=ru
+```
+
+**Параметры**:
+
+- `id` - ID обитателя
+- `locale` (опционально) - язык для переводов
+
+**Ответ**:
+
+```json
+{
+  "statusCode": 200,
+  "statusMessage": "Success",
+  "inhabitant": {
+    "id": "inhabitant_id",
+    "type": ["fish", "marine"],
+    "subtype": "tropical",
+    "title": "Тропическая рыба",
+    "imageUrl": "https://example.com/fish.jpg",
+    "articleUrl": "https://example.com/article"
+  }
+}
+```
+
+#### Создать обитателя
+
+```http
+POST /inhabitants/inhabitant
+Authorization: Bearer ADMIN_TOKEN
+```
+
+**Тело запроса**:
+
+```json
+{
+  "type": ["fish", "marine"],
+  "subtype": "tropical",
+  "translations": {
+    "az": {
+      "title": "Tropik balıq"
+    },
+    "ru": {
+      "title": "Тропическая рыба"
+    },
+    "en": {
+      "title": "Tropical fish"
+    }
+  },
+  "imageUrl": "https://example.com/fish.jpg",
+  "articleUrl": "https://example.com/article"
+}
+```
+
+**Ответ**:
+
+```json
+{
+  "statusCode": 200,
+  "statusMessage": "Created",
+  "inhabitantId": "new_inhabitant_id"
+}
+```
+
+#### Обновить обитателя
+
+```http
+PATCH /inhabitants/inhabitant
+Authorization: Bearer ADMIN_TOKEN
+```
+
+**Тело запроса**:
+
+```json
+{
+  "id": "inhabitant_id",
+  "type": ["fish", "freshwater"],
+  "subtype": "coldwater",
+  "translations": {
+    "az": {
+      "title": "Yeni tropik balıq"
+    },
+    "ru": {
+      "title": "Новая тропическая рыба"
+    },
+    "en": {
+      "title": "New tropical fish"
+    }
+  },
+  "imageUrl": "https://example.com/new_fish.jpg",
+  "articleUrl": "https://example.com/new_article"
+}
+```
+
+#### Удалить обитателя
+
+```http
+DELETE /inhabitants/inhabitant/{id}
+Authorization: Bearer ADMIN_TOKEN
+```
+
 #### Получить статью по ID
 
 ```http
@@ -457,6 +593,22 @@ Authorization: Bearer ADMIN_TOKEN
 - `url` (String) - URL изображения
 - `uploadedAt` (DateTime) - дата загрузки
 
+#### Inhabitant
+
+- `id` (String, Primary Key) - уникальный идентификатор
+- `type` (String[]) - типы обитателя (массив)
+- `subtype` (String) - подтип обитателя
+- `translations` (TranslationInhabitant[]) - переводы обитателя
+- `imageUrl` (String) - URL изображения обитателя
+- `articleUrl` (String) - URL статьи об обитателе
+
+#### TranslationInhabitant
+
+- `id` (String, Primary Key)
+- `locale` (String) - язык (az, ru, en)
+- `title` (String) - заголовок
+- `inhabitantId` (String) - ID обитателя
+
 ## Примеры использования
 
 ### Создание полной структуры контента
@@ -509,6 +661,25 @@ curl -X POST http://localhost:3000/articles/article \
   }'
 ```
 
+4. **Создание обитателя**:
+
+```bash
+curl -X POST http://localhost:3000/inhabitants/inhabitant \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": ["fish", "marine"],
+    "subtype": "tropical",
+    "translations": {
+      "az": {"title": "Tropik balıq"},
+      "ru": {"title": "Тропическая рыба"},
+      "en": {"title": "Tropical fish"}
+    },
+    "imageUrl": "https://example.com/fish.jpg",
+    "articleUrl": "https://example.com/article"
+  }'
+```
+
 ### Получение контента
 
 **Получение всех категорий на русском языке**:
@@ -527,6 +698,24 @@ curl "http://localhost:3000/articles?subCategoryId=subcategory_id&locale=ru"
 
 ```bash
 curl "http://localhost:3000/articles/article/article_id?locale=ru"
+```
+
+**Получение всех обитателей**:
+
+```bash
+curl "http://localhost:3000/inhabitants?locale=ru"
+```
+
+**Получение обитателей определенного типа**:
+
+```bash
+curl "http://localhost:3000/inhabitants?type=fish&locale=ru"
+```
+
+**Получение конкретного обитателя**:
+
+```bash
+curl "http://localhost:3000/inhabitants/inhabitant/inhabitant_id?locale=ru"
 ```
 
 ## Обработка ошибок

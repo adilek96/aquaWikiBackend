@@ -1,5 +1,3 @@
-import { swaggerUI } from '@hono/swagger-ui';
-import { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from 'zod';
 // Схемы для валидации
 const TranslationSchema = z.object({
@@ -70,11 +68,37 @@ const openApiConfig = {
     openapi: '3.0.0',
     info: {
         title: 'AquaWiki API',
-        version: '1.0.0',
-        description: 'API для управления контентом AquaWiki - базы знаний о водных обитателях. Требует аутентификации через API токены.',
+        version: '2.0.0',
+        description: `
+# AquaWiki API - База знаний о водных обитателях
+
+Этот API предоставляет полный набор эндпоинтов для управления контентом базы знаний о водных обитателях.
+
+## Основные возможности:
+- **Категории**: Создание, чтение, обновление и удаление категорий
+- **Подкатегории**: Управление подкатегориями с привязкой к категориям
+- **Статьи**: Полноценное управление статьями с переводами и изображениями
+- **Мультиязычность**: Поддержка трех языков (азербайджанский, русский, английский)
+- **Аутентификация**: Простая система токенов для безопасности
+
+## Аутентификация:
+API использует Bearer токены для аутентификации. Доступны два типа токенов:
+- **Admin Token**: Для создания, обновления и удаления контента
+- **Read Token**: Для чтения контента
+
+## Поддерживаемые языки:
+- **az**: Азербайджанский
+- **ru**: Русский (по умолчанию)
+- **en**: Английский
+    `,
         contact: {
             name: 'AquaWiki Team',
-            email: 'support@aquawiki.com'
+            email: 'support@aquawiki.com',
+            url: 'https://aquawiki.com'
+        },
+        license: {
+            name: 'MIT',
+            url: 'https://opensource.org/licenses/MIT'
         }
     },
     components: {
@@ -107,6 +131,10 @@ const openApiConfig = {
         {
             url: 'http://localhost:3000',
             description: 'Локальный сервер разработки'
+        },
+        {
+            url: 'https://aqua-wiki-backend.vercel.app/',
+            description: 'Продакшн сервер (Vercel)'
         }
     ],
     tags: [

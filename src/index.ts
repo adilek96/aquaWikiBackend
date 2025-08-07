@@ -22,6 +22,13 @@ import getArticle from './routes/articles/article/get.article.js'
 import patchArticle from './routes/articles/article/patch.article.js'
 import deleteArticle from './routes/articles/article/delete.article.js'
 
+// Импорт роутеров для обитателей
+import postInhabitant from './routes/inhabitants/inhabitant/post.inhabitant.js'
+import getInhabitants from './routes/inhabitants/get.inhabitants.js'
+import getInhabitant from './routes/inhabitants/inhabitant/get.inhabitant.js'
+import patchInhabitant from './routes/inhabitants/inhabitant/patch.inhabitant.js'
+import deleteInhabitant from './routes/inhabitants/inhabitant/delete.inhabitant.js'
+
 // Импорт Swagger
 import swaggerRouter from './routes/swagger.js'
 
@@ -80,6 +87,13 @@ app.route('/', getArticles)
 app.route('/', getArticle)
 app.route('/', patchArticle)
 app.route('/', deleteArticle)
+
+// Роутеры для обитателей
+app.route('/', postInhabitant)
+app.route('/', getInhabitants)
+app.route('/', getInhabitant)
+app.route('/', patchInhabitant)
+app.route('/', deleteInhabitant)
 
 // Отключение Prisma Client при завершении работы приложения
 // Это важно для серверных сред, чтобы корректно закрыть соединения с БД.

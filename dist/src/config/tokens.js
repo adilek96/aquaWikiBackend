@@ -6,8 +6,8 @@ export const TOKENS = {
     READ: process.env.READ_TOKEN || 'read_public_token_67890'
 };
 // Генерация новых токенов (для продакшена)
-export function generateTokens() {
-    const crypto = require('crypto');
+export async function generateTokens() {
+    const crypto = await import('crypto');
     const adminToken = crypto.randomBytes(32).toString('hex');
     const readToken = crypto.randomBytes(32).toString('hex');
     console.log('=== СГЕНЕРИРОВАННЫЕ ТОКЕНЫ ===');

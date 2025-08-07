@@ -47,7 +47,7 @@ router.post('/subcategories/subcategory', adminAuth, zValidator('json', postVali
             };
         });
         await prisma.translationSubCategory.createMany({
-            data: translationsData.map(item => ({
+            data: translationsData.map((item) => ({
                 ...item,
                 subCategoryId: subcategory.id
             }))
