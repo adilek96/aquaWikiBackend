@@ -52,6 +52,9 @@ const body = await c.req.json()
   })
 
   // Добавляем переводы
+
+    // Добавляем переводы
+  
   const translationsData = Object.entries(body.translations).map(
     ([locale, value]) => {
       const v = value as { title: string; description: string };
@@ -59,15 +62,13 @@ const body = await c.req.json()
       locale,
       title: v.title,
       description: v.description,
+      subCategoryId: subcategory.id
     }
     }
   )
 
   await prisma.translationSubCategory.createMany({
-    data: translationsData.map((item: any) => ({
-      ...item,
-      subCategoryId: subcategory.id
-    }))
+    data: translationsData
   })
   
   
