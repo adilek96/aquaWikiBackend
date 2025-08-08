@@ -17,7 +17,8 @@ router.delete('/categories/category/:id', adminAuth, async (c) => {
             }
         })
         
-        
+        return c.json({ statusCode: 200, statusMessage: "Deleted", categoryId: id });
+
     } catch (error) {
         console.error('Route Error:', error)
         return c.json({
