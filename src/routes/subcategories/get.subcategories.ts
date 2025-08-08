@@ -15,11 +15,11 @@ router.get('/subcategories', async (c) => {
 
   try {
     // получаем категории
-    let categories;
+    let subcategories;
 
     // если язык не передан
     if(lang === undefined || lang === null){
-        categories = await prisma.subCategories.findMany({
+        subcategories = await prisma.subCategories.findMany({
             where: {
                 translations: {
                   some: {
@@ -34,7 +34,7 @@ router.get('/subcategories', async (c) => {
     }
     // если язык передан
     if(lang){
-       categories = await prisma.subCategories.findMany({
+       subcategories = await prisma.subCategories.findMany({
         where: {
             translations: {
               some: {
@@ -58,7 +58,7 @@ router.get('/subcategories', async (c) => {
 
 
      // возращаем ответ
-     return c.json({ statusCode: 200, categories});
+     return c.json({ statusCode: 200, subcategories});
 
   } catch (error) {
     
