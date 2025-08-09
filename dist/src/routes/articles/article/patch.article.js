@@ -1,103 +1,113 @@
-// обновление статьи
 import * as z from "zod";
-import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import { adminAuth } from '../../../middleware/auth.js';
-// валидируем данные через зод 
+import { Hono } from "hono";
+import { zValidator } from "@hono/zod-validator";
+import { adminAuth } from "../../../middleware/auth.js";
+// Валидация перевода (description — JSON от Editor.js)
 const translationSchema = z.object({
-    title: z.string(),
-    description: z.string()
+    title: z.string().min(1, "Title is required"),
+    description: z.any() // Editor.js JSON
 });
 const patchValidation = z.object({
-    id: z.string(),
-    subCategoryId: z.string().optional(),
-    translations: z.object({
+    id: z.string().min(1, "Article ID is required"),
+    subCategoryIds: z.array(z.string().min(1)).optional(),
+    translations: z
+        .object({
         az: translationSchema,
         ru: translationSchema,
         en: translationSchema
-    }).optional(),
-    images: z.array(z.string()).optional()
+    })
+        .partial()
+        .optional(),
+    images: z.array(z.string().url("Invalid image URL")).optional()
 });
 const router = new Hono();
-router.patch('/articles/article', adminAuth, zValidator('json', patchValidation), async (c) => {
-    const prisma = c.get('prisma');
+router.patch("/articles/article", adminAuth, zValidator("json", patchValidation), async (c) => {
+    const prisma = c.get("prisma");
     try {
         const body = await c.req.json();
-        const { id, subCategoryId, translations, images } = body;
+        const { id, subCategoryIds, translations, images } = body;
         // Проверка, существует ли статья
         const existingArticle = await prisma.article.findUnique({
-            where: { id }
+            where: { id },
+            include: { subCategories: true }
         });
         if (!existingArticle) {
             return c.json({ statusCode: 404, statusMessage: "Article not found" }, 404);
         }
-        // Обновляем подкатегорию, если указана
-        if (subCategoryId) {
-            const subCategory = await prisma.subCategories.findUnique({
-                where: { id: subCategoryId }
+        // Обновляем подкатегории, если указаны
+        if (subCategoryIds) {
+            const subcategories = await prisma.subCategories.findMany({
+                where: { id: { in: subCategoryIds } },
+                select: { id: true }
             });
-            if (!subCategory) {
-                return c.json({ statusCode: 404, statusMessage: "SubCategory not found" }, 404);
+            if (subcategories.length !== subCategoryIds.length) {
+                return c.json({
+                    statusCode: 404,
+                    statusMessage: "One or more SubCategories not found"
+                }, 404);
             }
             await prisma.article.update({
                 where: { id },
-                data: { subCategoryId }
+                data: {
+                    subCategories: {
+                        set: [], // очищаем старые
+                        connect: subCategoryIds.map((sid) => ({ id: sid }))
+                    }
+                }
             });
         }
-        // Обновляем переводы, если указаны
+        // Обновляем переводы
         if (translations) {
             for (const [locale, value] of Object.entries(translations)) {
-                const v = value;
+                if (!value)
+                    continue;
                 const existingTranslation = await prisma.translationArticle.findFirst({
                     where: { articleId: id, locale }
                 });
                 if (existingTranslation) {
-                    // обновляем
                     await prisma.translationArticle.update({
                         where: { id: existingTranslation.id },
                         data: {
-                            title: v.title,
-                            description: v.description
+                            title: value.title,
+                            description: value.description // JSON от Editor.js
                         }
                     });
                 }
                 else {
-                    // создаём новый
                     await prisma.translationArticle.create({
                         data: {
                             articleId: id,
                             locale,
-                            title: v.title,
-                            description: v.description
+                            title: value.title,
+                            description: value.description
                         }
                     });
                 }
             }
         }
-        // Обновляем изображения, если указаны
+        // Обновляем изображения
         if (images) {
-            // Удаляем старые изображения
-            await prisma.articleImages.deleteMany({
-                where: { articleId: id }
-            });
-            // Добавляем новые изображения
+            await prisma.articleImages.deleteMany({ where: { articleId: id } });
             if (images.length > 0) {
-                const imagesData = images.map((url) => ({
-                    articleId: id,
-                    url
-                }));
                 await prisma.articleImages.createMany({
-                    data: imagesData
+                    data: images.map((url) => ({
+                        articleId: id,
+                        url
+                    }))
                 });
             }
         }
-        return c.json({ statusCode: 200, statusMessage: "Updated", articleId: id });
+        return c.json({
+            statusCode: 200,
+            statusMessage: "Updated",
+            articleId: id
+        });
     }
     catch (error) {
-        console.error('Route Error:', error);
+        console.error("Route Error:", error);
         return c.json({
             statusCode: 500,
-            statusMessage: 'Server Error',
+            statusMessage: "Server Error",
             error: error instanceof Error ? error.message : String(error)
         }, 500);
     }

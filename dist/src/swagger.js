@@ -19,6 +19,11 @@ const ArticleTranslationSchema = z.object({
     ru: TranslationSchema,
     en: TranslationSchema
 });
+const InhabitantTranslationSchema = z.object({
+    az: z.object({ title: z.string().describe('Заголовок') }),
+    ru: z.object({ title: z.string().describe('Заголовок') }),
+    en: z.object({ title: z.string().describe('Заголовок') })
+});
 // Схемы для ответов
 const CategoryResponseSchema = z.object({
     id: z.string(),
@@ -40,19 +45,26 @@ const SubCategoryResponseSchema = z.object({
 });
 const ArticleResponseSchema = z.object({
     id: z.string(),
-    subCategoryId: z.string(),
     title: z.string(),
     description: z.string(),
-    subCategory: z.object({
+    subCategories: z.array(z.object({
         id: z.string(),
         title: z.string(),
         description: z.string()
-    }),
+    })),
     images: z.array(z.object({
         id: z.string(),
         url: z.string(),
         uploadedAt: z.string()
     }))
+});
+const InhabitantResponseSchema = z.object({
+    id: z.string(),
+    type: z.array(z.string()),
+    subtype: z.string(),
+    title: z.string(),
+    imageUrl: z.string(),
+    articleUrl: z.string()
 });
 const SuccessResponseSchema = z.object({
     statusCode: z.number(),
@@ -77,7 +89,8 @@ const openApiConfig = {
 ## Основные возможности:
 - **Категории**: Создание, чтение, обновление и удаление категорий
 - **Подкатегории**: Управление подкатегориями с привязкой к категориям
-- **Статьи**: Полноценное управление статьями с переводами и изображениями
+- **Статьи**: Полноценное управление статьями с переводами, изображениями и связями many-to-many с подкатегориями
+- **Обитатели**: Управление информацией об обитателях аквариума с переводами
 - **Мультиязычность**: Поддержка трех языков (азербайджанский, русский, английский)
 - **Аутентификация**: Простая система токенов для безопасности
 
@@ -115,9 +128,11 @@ API использует Bearer токены для аутентификации
             CategoryTranslation: CategoryTranslationSchema,
             SubCategoryTranslation: SubCategoryTranslationSchema,
             ArticleTranslation: ArticleTranslationSchema,
+            InhabitantTranslation: InhabitantTranslationSchema,
             CategoryResponse: CategoryResponseSchema,
             SubCategoryResponse: SubCategoryResponseSchema,
             ArticleResponse: ArticleResponseSchema,
+            InhabitantResponse: InhabitantResponseSchema,
             SuccessResponse: SuccessResponseSchema,
             ErrorResponse: ErrorResponseSchema
         }
@@ -153,6 +168,10 @@ API использует Bearer токены для аутентификации
         {
             name: 'Articles',
             description: 'Операции со статьями'
+        },
+        {
+            name: 'Inhabitants',
+            description: 'Операции с обитателями аквариума'
         }
     ],
     paths: {
@@ -656,7 +675,7 @@ API использует Bearer токены для аутентификации
             post: {
                 tags: ['Articles'],
                 summary: 'Создать новую статью',
-                description: 'Создает новую статью с переводами, изображениями и привязкой к подкатегории',
+                description: 'Создает новую статью с переводами, изображениями и привязкой к подкатегориям (many-to-many)',
                 requestBody: {
                     required: true,
                     content: {
@@ -664,7 +683,11 @@ API использует Bearer токены для аутентификации
                             schema: {
                                 type: 'object',
                                 properties: {
-                                    subCategoryId: { type: 'string', description: 'ID подкатегории' },
+                                    subCategoryIds: {
+                                        type: 'array',
+                                        items: { type: 'string' },
+                                        description: 'Массив ID подкатегорий'
+                                    },
                                     translations: ArticleTranslationSchema,
                                     images: {
                                         type: 'array',
@@ -672,9 +695,9 @@ API использует Bearer токены для аутентификации
                                         description: 'Массив URL изображений'
                                     }
                                 },
-                                required: ['subCategoryId', 'translations'],
+                                required: ['subCategoryIds', 'translations'],
                                 example: {
-                                    subCategoryId: 'subcategory_id',
+                                    subCategoryIds: ['subcategory_id_1', 'subcategory_id_2'],
                                     translations: {
                                         az: { title: 'Balıq növləri', description: 'Müxtəlif balıq növləri haqqında' },
                                         ru: { title: 'Виды рыб', description: 'О различных видах рыб' },
@@ -723,7 +746,7 @@ API использует Bearer токены для аутентификации
             patch: {
                 tags: ['Articles'],
                 summary: 'Обновить статью',
-                description: 'Обновляет существующую статью с новыми переводами, изображениями или подкатегорией',
+                description: 'Обновляет существующую статью с новыми переводами, изображениями или подкатегориями',
                 requestBody: {
                     required: true,
                     content: {
@@ -732,7 +755,11 @@ API использует Bearer токены для аутентификации
                                 type: 'object',
                                 properties: {
                                     id: { type: 'string', description: 'ID статьи' },
-                                    subCategoryId: { type: 'string', description: 'ID подкатегории' },
+                                    subCategoryIds: {
+                                        type: 'array',
+                                        items: { type: 'string' },
+                                        description: 'Массив ID подкатегорий'
+                                    },
                                     translations: ArticleTranslationSchema,
                                     images: {
                                         type: 'array',
@@ -743,7 +770,7 @@ API использует Bearer токены для аутентификации
                                 required: ['id'],
                                 example: {
                                     id: 'article_id',
-                                    subCategoryId: 'new_subcategory_id',
+                                    subCategoryIds: ['new_subcategory_id_1', 'new_subcategory_id_2'],
                                     translations: {
                                         az: { title: 'Balıq növləri', description: 'Müxtəlif balıq növləri haqqında' },
                                         ru: { title: 'Виды рыб', description: 'О различных видах рыб' },
@@ -879,6 +906,304 @@ API использует Bearer токены для аутентификации
                     },
                     '404': {
                         description: 'Статья не найдена',
+                        content: {
+                            'application/json': {
+                                schema: ErrorResponseSchema
+                            }
+                        }
+                    },
+                    '500': {
+                        description: 'Ошибка сервера',
+                        content: {
+                            'application/json': {
+                                schema: ErrorResponseSchema
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        // Обитатели
+        '/inhabitants': {
+            get: {
+                tags: ['Inhabitants'],
+                summary: 'Получить список всех обитателей',
+                description: 'Возвращает список всех обитателей с переводами на указанном языке',
+                parameters: [
+                    {
+                        name: 'locale',
+                        in: 'query',
+                        description: 'Язык для переводов (az, ru, en)',
+                        schema: {
+                            type: 'string',
+                            enum: ['az', 'ru', 'en'],
+                            default: 'ru'
+                        }
+                    },
+                    {
+                        name: 'type',
+                        in: 'query',
+                        description: 'Фильтр по типу обитателя',
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    '200': {
+                        description: 'Успешный ответ',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        statusCode: { type: 'number', example: 200 },
+                                        statusMessage: { type: 'string', example: 'Success' },
+                                        inhabitants: {
+                                            type: 'array',
+                                            items: InhabitantResponseSchema
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '500': {
+                        description: 'Ошибка сервера',
+                        content: {
+                            'application/json': {
+                                schema: ErrorResponseSchema
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/inhabitants/inhabitant': {
+            post: {
+                tags: ['Inhabitants'],
+                summary: 'Создать нового обитателя',
+                description: 'Создает нового обитателя с переводами на трех языках',
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    type: {
+                                        type: 'array',
+                                        items: { type: 'string' },
+                                        description: 'Типы обитателя (массив)'
+                                    },
+                                    subtype: { type: 'string', description: 'Подтип обитателя' },
+                                    translations: InhabitantTranslationSchema,
+                                    imageUrl: { type: 'string', format: 'uri', description: 'URL изображения' },
+                                    articleUrl: { type: 'string', format: 'uri', description: 'URL статьи' }
+                                },
+                                required: ['type', 'subtype', 'translations', 'imageUrl', 'articleUrl'],
+                                example: {
+                                    type: ['FRESHWATER', 'SALTWATER'],
+                                    subtype: 'FISHS',
+                                    translations: {
+                                        az: { title: 'Tropik balıq' },
+                                        ru: { title: 'Тропическая рыба' },
+                                        en: { title: 'Tropical fish' }
+                                    },
+                                    imageUrl: 'https://example.com/fish.jpg',
+                                    articleUrl: 'https://example.com/article'
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    '200': {
+                        description: 'Обитатель создан',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        statusCode: { type: 'number', example: 200 },
+                                        statusMessage: { type: 'string', example: 'Created' },
+                                        inhabitantId: { type: 'string' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '500': {
+                        description: 'Ошибка сервера',
+                        content: {
+                            'application/json': {
+                                schema: ErrorResponseSchema
+                            }
+                        }
+                    }
+                }
+            },
+            patch: {
+                tags: ['Inhabitants'],
+                summary: 'Обновить обитателя',
+                description: 'Обновляет существующего обитателя с новыми данными',
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    id: { type: 'string', description: 'ID обитателя' },
+                                    type: {
+                                        type: 'array',
+                                        items: { type: 'string' },
+                                        description: 'Типы обитателя (массив)'
+                                    },
+                                    subtype: { type: 'string', description: 'Подтип обитателя' },
+                                    translations: InhabitantTranslationSchema,
+                                    imageUrl: { type: 'string', format: 'uri', description: 'URL изображения' },
+                                    articleUrl: { type: 'string', format: 'uri', description: 'URL статьи' }
+                                },
+                                required: ['id'],
+                                example: {
+                                    id: 'inhabitant_id',
+                                    type: ['FRESHWATER'],
+                                    subtype: 'FISHS',
+                                    translations: {
+                                        az: { title: 'Yeni tropik balıq' },
+                                        ru: { title: 'Новая тропическая рыба' },
+                                        en: { title: 'New tropical fish' }
+                                    },
+                                    imageUrl: 'https://example.com/new_fish.jpg',
+                                    articleUrl: 'https://example.com/new_article'
+                                }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    '200': {
+                        description: 'Обитатель обновлен',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        statusCode: { type: 'number', example: 200 },
+                                        statusMessage: { type: 'string', example: 'Updated' },
+                                        inhabitantId: { type: 'string' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '404': {
+                        description: 'Обитатель не найден',
+                        content: {
+                            'application/json': {
+                                schema: ErrorResponseSchema
+                            }
+                        }
+                    },
+                    '500': {
+                        description: 'Ошибка сервера',
+                        content: {
+                            'application/json': {
+                                schema: ErrorResponseSchema
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/inhabitants/inhabitant/{id}': {
+            get: {
+                tags: ['Inhabitants'],
+                summary: 'Получить обитателя по ID',
+                description: 'Возвращает конкретного обитателя с полной информацией',
+                parameters: [
+                    {
+                        name: 'id',
+                        in: 'path',
+                        required: true,
+                        description: 'ID обитателя',
+                        schema: { type: 'string' }
+                    },
+                    {
+                        name: 'locale',
+                        in: 'query',
+                        description: 'Язык для переводов (az, ru, en)',
+                        schema: {
+                            type: 'string',
+                            enum: ['az', 'ru', 'en'],
+                            default: 'ru'
+                        }
+                    }
+                ],
+                responses: {
+                    '200': {
+                        description: 'Успешный ответ',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        statusCode: { type: 'number', example: 200 },
+                                        statusMessage: { type: 'string', example: 'Success' },
+                                        inhabitant: InhabitantResponseSchema
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '404': {
+                        description: 'Обитатель не найден',
+                        content: {
+                            'application/json': {
+                                schema: ErrorResponseSchema
+                            }
+                        }
+                    },
+                    '500': {
+                        description: 'Ошибка сервера',
+                        content: {
+                            'application/json': {
+                                schema: ErrorResponseSchema
+                            }
+                        }
+                    }
+                }
+            },
+            delete: {
+                tags: ['Inhabitants'],
+                summary: 'Удалить обитателя',
+                description: 'Удаляет обитателя по ID вместе со всеми переводами',
+                parameters: [
+                    {
+                        name: 'id',
+                        in: 'path',
+                        required: true,
+                        description: 'ID обитателя',
+                        schema: { type: 'string' }
+                    }
+                ],
+                responses: {
+                    '200': {
+                        description: 'Обитатель удален',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        statusCode: { type: 'number', example: 200 },
+                                        statusMessage: { type: 'string', example: 'Deleted' },
+                                        inhabitantId: { type: 'string' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '404': {
+                        description: 'Обитатель не найден',
                         content: {
                             'application/json': {
                                 schema: ErrorResponseSchema

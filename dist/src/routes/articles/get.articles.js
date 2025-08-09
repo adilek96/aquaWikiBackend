@@ -1,45 +1,39 @@
-// получение списка статей
 import { Hono } from 'hono';
 const router = new Hono();
 router.get('/articles', async (c) => {
     const prisma = c.get('prisma');
-    const locale = c.req.query('locale') || 'ru'; // по умолчанию русский
+    const locale = c.req.query('locale') || 'ru'; // язык по умолчанию
     const subCategoryId = c.req.query('subCategoryId'); // опциональная фильтрация по подкатегории
     try {
-        const whereClause = {};
-        if (subCategoryId) {
-            whereClause.subCategoryId = subCategoryId;
-        }
+        const whereClause = subCategoryId
+            ? { subCategories: { some: { id: subCategoryId } } }
+            : {};
         const articles = await prisma.article.findMany({
             where: whereClause,
             include: {
-                translations: {
-                    where: { locale }
-                },
+                translations: { where: { locale } },
                 articleImages: true,
-                category: {
+                subCategories: {
                     include: {
-                        translations: {
-                            where: { locale }
-                        }
+                        translations: { where: { locale } }
                     }
                 }
             }
         });
-        // Форматируем ответ
-        const formattedArticles = articles.map((article) => {
+        const formattedArticles = articles.map(article => {
             const translation = article.translations[0] || {};
-            const subCategoryTranslation = article.category.translations[0] || {};
             return {
                 id: article.id,
-                subCategoryId: article.subCategoryId,
                 title: translation.title || '',
                 description: translation.description || '',
-                subCategory: {
-                    id: article.category.id,
-                    title: subCategoryTranslation.title || '',
-                    description: subCategoryTranslation.description || ''
-                },
+                subCategories: article.subCategories.map((subCat) => {
+                    const subTranslation = subCat.translations[0] || {};
+                    return {
+                        id: subCat.id,
+                        title: subTranslation.title || '',
+                        description: subTranslation.description || ''
+                    };
+                }),
                 images: article.articleImages.map((img) => ({
                     id: img.id,
                     url: img.url,
@@ -49,7 +43,7 @@ router.get('/articles', async (c) => {
         });
         return c.json({
             statusCode: 200,
-            statusMessage: "Success",
+            statusMessage: 'Success',
             articles: formattedArticles
         });
     }

@@ -9,7 +9,7 @@ const translationSchema = z.object({
     description: z.string()
 });
 const postValidation = z.object({
-    subCategoryId: z.string(),
+    subCategoryId: z.array(z.string()),
     translations: z.object({
         az: translationSchema,
         ru: translationSchema,

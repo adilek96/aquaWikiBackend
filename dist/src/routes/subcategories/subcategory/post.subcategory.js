@@ -1,66 +1,60 @@
 // добавление подкатегории
 import * as z from "zod";
-import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import { adminAuth } from '../../../middleware/auth.js';
-// валидируем данные через зод 
+import { Hono } from "hono";
+import { zValidator } from "@hono/zod-validator";
+import { adminAuth } from "../../../middleware/auth.js";
+// Валидация перевода
 const translationSchema = z.object({
     title: z.string(),
-    description: z.string()
+    description: z.string(),
 });
+// Основная валидация тела запроса
 const postValidation = z.object({
     translations: z.object({
         az: translationSchema,
         ru: translationSchema,
-        en: translationSchema
+        en: translationSchema,
     }),
-    categoryId: z.array(z.string())
+    categoryIds: z.array(z.string().min(1, "Category ID is required")),
 });
 const router = new Hono();
-router.post('/subcategories/subcategory', adminAuth, zValidator('json', postValidation), async (c) => {
-    const prisma = c.get('prisma');
+router.post("/subcategories/subcategory", adminAuth, zValidator("json", postValidation), async (c) => {
+    const prisma = c.get("prisma");
     try {
-        // {
-        //   "translations": {
-        //     "az": { "title": "Balıq", "description": "Balıq haqqında" },
-        //     "ru": { "title": "Рыба", "description": "О рыбе" },
-        //     "en": { "title": "Fish", "description": "About fish" }
-        //   }
-        // }
         const body = await c.req.json();
-        // записываем данные в бд создавая подкатегорию 
-        // Сначала создаём подкатегорию
-        const subcategory = await prisma.subCategories.create({
-            data: {
-                categories: {
-                    connect: body.categoryIds.map((id) => ({ id }))
-                }
-            }
-        });
-        // Добавляем переводы
-        const translationsData = Object.entries(body.translations).map(([locale, value]) => {
-            const v = value;
-            return {
+        // Транзакция: создаём подкатегорию и переводы вместе
+        const { subcategory } = await prisma.$transaction(async (tx) => {
+            const subcategory = await tx.subCategories.create({
+                data: {
+                    categories: {
+                        connect: body.categoryIds.map((id) => ({ id })),
+                    },
+                },
+            });
+            const translationsData = Object.entries(body.translations).map(([locale, value]) => ({
                 locale,
-                title: v.title,
-                description: v.description,
-            };
+                title: value.title,
+                description: value.description,
+                subCategoryId: subcategory.id,
+            }));
+            await tx.translationSubCategory.createMany({
+                data: translationsData,
+            });
+            return { subcategory };
         });
-        await prisma.translationSubCategory.createMany({
-            data: translationsData.map((item) => ({
-                ...item,
-                subCategoryId: subcategory.id
-            }))
+        // Возвращаем ответ
+        return c.json({
+            statusCode: 200,
+            statusMessage: "Created",
+            subcategory,
         });
-        // возращаем ответ
-        return c.json({ statusCode: 200, statusMessage: "Created", subcategoryId: subcategory.id });
     }
     catch (error) {
-        console.error('Route Error:', error);
+        console.error("Route Error:", error);
         return c.json({
             statusCode: 500,
-            statusMessage: 'Server Error',
-            error: error instanceof Error ? error.message : String(error)
+            statusMessage: "Server Error",
+            error: error instanceof Error ? error.message : String(error),
         }, 500);
     }
 });

@@ -2,7 +2,7 @@
 import { Hono } from 'hono';
 import { adminAuth } from '../../../middleware/auth.js';
 const router = new Hono();
-router.delete('/subcategories/subcategory', adminAuth, async (c) => {
+router.delete('/subcategories/subcategory/:id', adminAuth, async (c) => {
     const prisma = c.get('prisma');
     const id = c.req.param('id');
     try {
@@ -12,6 +12,7 @@ router.delete('/subcategories/subcategory', adminAuth, async (c) => {
                 id: id
             }
         });
+        return c.json({ statusCode: 200, statusMessage: "Deleted", subcategoryId: id });
     }
     catch (error) {
         console.error('Route Error:', error);

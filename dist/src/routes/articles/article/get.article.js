@@ -1,10 +1,9 @@
-// получение статьи по ID
 import { Hono } from 'hono';
 const router = new Hono();
 router.get('/articles/article/:id', async (c) => {
     const prisma = c.get('prisma');
     const id = c.req.param('id');
-    const locale = c.req.query('locale') || 'ru'; // по умолчанию русский
+    const locale = c.req.query('locale') || 'ru'; // язык по умолчанию
     try {
         const article = await prisma.article.findUnique({
             where: { id },
@@ -13,7 +12,7 @@ router.get('/articles/article/:id', async (c) => {
                     where: { locale }
                 },
                 articleImages: true,
-                category: {
+                subCategories: {
                     include: {
                         translations: {
                             where: { locale }
@@ -27,17 +26,15 @@ router.get('/articles/article/:id', async (c) => {
         }
         // Форматируем ответ
         const translation = article.translations[0] || {};
-        const subCategoryTranslation = article.category.translations[0] || {};
         const formattedArticle = {
             id: article.id,
-            subCategoryId: article.subCategoryId,
             title: translation.title || '',
             description: translation.description || '',
-            subCategory: {
-                id: article.category.id,
-                title: subCategoryTranslation.title || '',
-                description: subCategoryTranslation.description || ''
-            },
+            subCategories: article.subCategories.map((subCat) => ({
+                id: subCat.id,
+                title: subCat.translations[0]?.title || '',
+                description: subCat.translations[0]?.description || ''
+            })),
             images: article.articleImages.map((img) => ({
                 id: img.id,
                 url: img.url,

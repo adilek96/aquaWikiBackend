@@ -1,36 +1,32 @@
-// получение всех категорий
-import { Hono } from 'hono';
+import { Hono } from "hono";
 const router = new Hono();
-router.get('/subcategories', async (c) => {
-    const prisma = c.get('prisma');
-    const lang = c.req.query('lang');
+router.get("/subcategories", async (c) => {
+    const prisma = c.get("prisma");
+    const lang = c.req.query("lang") || null;
     try {
-        // получаем категории
-        let categories;
-        // если язык не передан
-        if (lang === undefined || lang === null) {
-            categories = await prisma.subCategories.findMany({
-                where: {
-                    translations: {
-                        some: {
-                            locale: lang
-                        }
-                    }
-                },
+        let subcategories;
+        if (!lang) {
+            // Если язык не передан — возвращаем всё
+            subcategories = await prisma.subCategories.findMany({
                 include: {
-                    translations: true
-                }
+                    translations: true,
+                    categories: {
+                        include: {
+                            translations: true,
+                        },
+                    },
+                },
             });
         }
-        // если язык передан
-        if (lang) {
-            categories = await prisma.subCategories.findMany({
+        else {
+            // Если язык передан — фильтруем переводы
+            subcategories = await prisma.subCategories.findMany({
                 where: {
                     translations: {
                         some: {
-                            locale: lang
-                        }
-                    }
+                            locale: lang,
+                        },
+                    },
                 },
                 select: {
                     id: true,
@@ -38,21 +34,32 @@ router.get('/subcategories', async (c) => {
                         where: { locale: lang },
                         select: {
                             title: true,
-                            description: true
-                        }
-                    }
-                }
+                            description: true,
+                        },
+                    },
+                    categories: {
+                        select: {
+                            id: true,
+                            translations: {
+                                where: { locale: lang },
+                                select: {
+                                    title: true,
+                                    description: true,
+                                },
+                            },
+                        },
+                    },
+                },
             });
         }
-        // возращаем ответ
-        return c.json({ statusCode: 200, categories });
+        return c.json({ statusCode: 200, subcategories });
     }
     catch (error) {
-        console.error('Route Error:', error);
+        console.error("Route Error:", error);
         return c.json({
             statusCode: 500,
-            statusMessage: 'Server Error',
-            error: error instanceof Error ? error.message : String(error)
+            statusMessage: "Server Error",
+            error: error instanceof Error ? error.message : String(error),
         }, 500);
     }
 });
