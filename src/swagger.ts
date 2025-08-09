@@ -55,14 +55,13 @@ const SubCategoryResponseSchema = z.object({
 
 const ArticleResponseSchema = z.object({
   id: z.string(),
-  subCategoryId: z.string(),
   title: z.string(),
   description: z.string(),
-  subCategory: z.object({
+  subCategories: z.array(z.object({
     id: z.string(),
     title: z.string(),
     description: z.string()
-  }),
+  })),
   images: z.array(z.object({
     id: z.string(),
     url: z.string(),
@@ -104,7 +103,8 @@ const openApiConfig = {
 ## Основные возможности:
 - **Категории**: Создание, чтение, обновление и удаление категорий
 - **Подкатегории**: Управление подкатегориями с привязкой к категориям
-- **Статьи**: Полноценное управление статьями с переводами и изображениями
+- **Статьи**: Полноценное управление статьями с переводами, изображениями и связями many-to-many с подкатегориями
+- **Обитатели**: Управление информацией об обитателях аквариума с переводами
 - **Мультиязычность**: Поддержка трех языков (азербайджанский, русский, английский)
 - **Аутентификация**: Простая система токенов для безопасности
 
@@ -691,7 +691,7 @@ API использует Bearer токены для аутентификации
       post: {
         tags: ['Articles'],
         summary: 'Создать новую статью',
-        description: 'Создает новую статью с переводами, изображениями и привязкой к подкатегории',
+        description: 'Создает новую статью с переводами, изображениями и привязкой к подкатегориям (many-to-many)',
         requestBody: {
           required: true,
           content: {
@@ -699,7 +699,11 @@ API использует Bearer токены для аутентификации
               schema: {
                 type: 'object',
                 properties: {
-                  subCategoryId: { type: 'string', description: 'ID подкатегории' },
+                  subCategoryIds: { 
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Массив ID подкатегорий' 
+                  },
                   translations: ArticleTranslationSchema,
                   images: {
                     type: 'array',
@@ -707,9 +711,9 @@ API использует Bearer токены для аутентификации
                     description: 'Массив URL изображений'
                   }
                 },
-                required: ['subCategoryId', 'translations'],
+                required: ['subCategoryIds', 'translations'],
                 example: {
-                  subCategoryId: 'subcategory_id',
+                  subCategoryIds: ['subcategory_id_1', 'subcategory_id_2'],
                   translations: {
                     az: { title: 'Balıq növləri', description: 'Müxtəlif balıq növləri haqqında' },
                     ru: { title: 'Виды рыб', description: 'О различных видах рыб' },
@@ -758,7 +762,7 @@ API использует Bearer токены для аутентификации
       patch: {
         tags: ['Articles'],
         summary: 'Обновить статью',
-        description: 'Обновляет существующую статью с новыми переводами, изображениями или подкатегорией',
+        description: 'Обновляет существующую статью с новыми переводами, изображениями или подкатегориями',
         requestBody: {
           required: true,
           content: {
@@ -767,7 +771,11 @@ API использует Bearer токены для аутентификации
                 type: 'object',
                 properties: {
                   id: { type: 'string', description: 'ID статьи' },
-                  subCategoryId: { type: 'string', description: 'ID подкатегории' },
+                  subCategoryIds: { 
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Массив ID подкатегорий' 
+                  },
                   translations: ArticleTranslationSchema,
                   images: {
                     type: 'array',
@@ -778,7 +786,7 @@ API использует Bearer токены для аутентификации
                 required: ['id'],
                 example: {
                   id: 'article_id',
-                  subCategoryId: 'new_subcategory_id',
+                  subCategoryIds: ['new_subcategory_id_1', 'new_subcategory_id_2'],
                   translations: {
                     az: { title: 'Balıq növləri', description: 'Müxtəlif balıq növləri haqqında' },
                     ru: { title: 'Виды рыб', description: 'О различных видах рыб' },
