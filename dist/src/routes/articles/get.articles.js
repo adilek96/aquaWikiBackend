@@ -3,37 +3,44 @@ const router = new Hono();
 router.get('/articles', async (c) => {
     const prisma = c.get('prisma');
     const locale = c.req.query('locale') || 'ru'; // язык по умолчанию
-    const subCategoryId = c.req.query('subCategoryId'); // опциональная фильтрация по подкатегории
+    const subCategoryId = c.req.query('subCategoryId'); // фильтр по подкатегории (опционально)
     try {
+        // Формируем where для фильтрации по подкатегории (если указана)
         const whereClause = subCategoryId
-            ? { subCategories: { some: { id: subCategoryId } } }
+            ? {
+                subCategories: {
+                    some: { id: subCategoryId }
+                }
+            }
             : {};
         const articles = await prisma.article.findMany({
             where: whereClause,
             include: {
-                translations: { where: { locale } },
+                translations: {
+                    where: { locale }
+                },
                 articleImages: true,
                 subCategories: {
                     include: {
-                        translations: { where: { locale } }
+                        translations: {
+                            where: { locale }
+                        }
                     }
                 }
             }
         });
-        const formattedArticles = articles.map(article => {
+        // Форматируем ответ
+        const formattedArticles = articles.map((article) => {
             const translation = article.translations[0] || {};
             return {
                 id: article.id,
                 title: translation.title || '',
                 description: translation.description || '',
-                subCategories: article.subCategories.map((subCat) => {
-                    const subTranslation = subCat.translations[0] || {};
-                    return {
-                        id: subCat.id,
-                        title: subTranslation.title || '',
-                        description: subTranslation.description || ''
-                    };
-                }),
+                subCategories: article.subCategories.map((subCat) => ({
+                    id: subCat.id,
+                    title: subCat.translations[0]?.title || '',
+                    description: subCat.translations[0]?.description || ''
+                })),
                 images: article.articleImages.map((img) => ({
                     id: img.id,
                     url: img.url,
