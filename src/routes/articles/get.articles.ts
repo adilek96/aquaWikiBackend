@@ -12,7 +12,9 @@ router.get('/articles', async (c) => {
   try {
     const whereClause: any = {};
     if (subCategoryId) {
-      whereClause.subCategoryId = subCategoryId;
+      whereClause.subCategories = {
+        some: { id: subCategoryId }
+      };
     }
 
     const articles = await prisma.article.findMany({
@@ -22,7 +24,7 @@ router.get('/articles', async (c) => {
           where: { locale }
         },
         articleImages: true,
-        category: {
+        subCategories: {
           include: {
             translations: {
               where: { locale }
@@ -35,18 +37,19 @@ router.get('/articles', async (c) => {
     // Форматируем ответ
     const formattedArticles = articles.map((article: any) => {
       const translation = article.translations[0] || {};
-      const subCategoryTranslation = article.category.translations[0] || {};
       
       return {
         id: article.id,
-        subCategoryId: article.subCategoryId,
         title: translation.title || '',
         description: translation.description || '',
-        subCategory: {
-          id: article.category.id,
-          title: subCategoryTranslation.title || '',
-          description: subCategoryTranslation.description || ''
-        },
+        subCategories: article.subCategories.map((sub: any) => {
+          const subTr = sub.translations[0] || {};
+          return {
+            id: sub.id,
+            title: subTr.title || '',
+            description: subTr.description || ''
+          };
+        }),
         images: article.articleImages.map((img: any) => ({
           id: img.id,
           url: img.url,

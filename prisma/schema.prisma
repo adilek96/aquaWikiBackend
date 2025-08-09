@@ -51,7 +51,7 @@ model Categories {
 model SubCategories {
   id                      String                   @id @default(cuid())
   translations            TranslationSubCategory[]
-  article                 Article[]
+  articles                Article[]                @relation("ArticleToSubCategory")
   categories              Categories[]             @relation("CategoryToSubCategory")
   categoryOnSubCategories CategoryOnSubCategory[]
 }
@@ -68,10 +68,9 @@ model CategoryOnSubCategory {
 
 model Article {
   id            String               @id @default(cuid())
-  subCategoryId String
-  category      SubCategories        @relation(fields: [subCategoryId], references: [id])
   translations  TranslationArticle[]
   articleImages ArticleImages[]
+  subCategories SubCategories[]      @relation("ArticleToSubCategory")
 }
 
 model ArticleImages {

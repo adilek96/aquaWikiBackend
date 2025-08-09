@@ -17,7 +17,7 @@ router.get('/articles/article/:id', async (c) => {
           where: { locale }
         },
         articleImages: true,
-        category: {
+        subCategories: {
           include: {
             translations: {
               where: { locale }
@@ -33,18 +33,16 @@ router.get('/articles/article/:id', async (c) => {
 
     // Форматируем ответ
     const translation = article.translations[0] || {};
-    const subCategoryTranslation = article.category.translations[0] || {};
     
     const formattedArticle = {
       id: article.id,
-      subCategoryId: article.subCategoryId,
       title: translation.title || '',
       description: translation.description || '',
-      subCategory: {
-        id: article.category.id,
-        title: subCategoryTranslation.title || '',
-        description: subCategoryTranslation.description || ''
-      },
+      subCategories: article.subCategories.map((subCat: any) => ({
+        id: subCat.id,
+        title: subCat.translations[0]?.title || '',
+        description: subCat.translations[0]?.description || ''
+      })),
       images: article.articleImages.map((img: any) => ({
         id: img.id,
         url: img.url,
@@ -68,4 +66,4 @@ router.get('/articles/article/:id', async (c) => {
   }
 })
 
-export default router 
+export default router
