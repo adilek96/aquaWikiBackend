@@ -1,4 +1,3 @@
-// получение статьи по ID
 import { Hono } from 'hono'
 import type { HonoEnv } from "../../../../lib/honoEnv.js";
 
@@ -7,7 +6,7 @@ const router = new Hono<HonoEnv>()
 router.get('/articles/article/:id', async (c) => {
   const prisma = c.get('prisma'); 
   const id = c.req.param('id');
-  const locale = c.req.query('locale') || 'ru'; // по умолчанию русский
+  const locale = c.req.query('locale') || 'ru'; // язык по умолчанию
 
   try {
     const article = await prisma.article.findUnique({
@@ -33,7 +32,7 @@ router.get('/articles/article/:id', async (c) => {
 
     // Форматируем ответ
     const translation = article.translations[0] || {};
-    
+
     const formattedArticle = {
       id: article.id,
       title: translation.title || '',
@@ -57,13 +56,13 @@ router.get('/articles/article/:id', async (c) => {
     });
 
   } catch (error) {
-    console.error('Route Error:', error)
+    console.error('Route Error:', error);
     return c.json({
       statusCode: 500,
       statusMessage: 'Server Error',
       error: error instanceof Error ? error.message : String(error)
-    }, 500)
+    }, 500);
   }
-})
+});
 
 export default router
