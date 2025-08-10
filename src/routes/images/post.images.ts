@@ -5,69 +5,20 @@ import * as Minio from "minio";
 
 
 
-// Настройки MinIO из переменных окружения
-const minioEndpoint = process.env.MINIO_ENDPOINT;
+
+const router = new Hono<HonoEnv>();
+
+
+ 
+
+router.post("/images", async (c) => {
+  const minioEndpoint = process.env.MINIO_ENDPOINT;
 const minioPort = process.env.MINIO_PORT;
 const minioAccessKey = process.env.MINIO_ACCESS_KEY;
 const minioSecretKey = process.env.MINIO_SECRET_KEY;
 const minioBucketName = process.env.MINIO_BUCKET_NAME;
 const minioUseSSL = process.env.MINIO_USE_SSL;
 
-const router = new Hono<HonoEnv>();
-
-// Тестовый эндпоинт для проверки подключения к MinIO
-router.get("/images/test", async (c) => {
-  if (!minioEndpoint || !minioPort || !minioAccessKey || !minioSecretKey || !minioBucketName || !minioUseSSL) {
-    return c.json({
-      statusCode: 500,
-      success: false,
-      error: "Не все переменные окружения установлены",
-    }, 500);
-  }
-
-  try {
-    console.log("Тестируем подключение к MinIO...");
-    
-    const minioClient = new Minio.Client({
-      endPoint: minioEndpoint,
-      port: parseInt(minioPort),
-      useSSL: minioUseSSL === 'true',
-      accessKey: minioAccessKey,
-      secretKey: minioSecretKey,
-    });
-
-    // Проверяем существование бакета
-    const bucketExists = await minioClient.bucketExists(minioBucketName);
-    
-    return c.json({
-      statusCode: 200,
-      success: true,
-      message: "Подключение к MinIO успешно",
-      bucketExists,
-      config: {
-        endPoint: minioEndpoint,
-        port: minioPort,
-        useSSL: minioUseSSL,
-        bucketName: minioBucketName
-      }
-    });
-  } catch (error) {
-    console.error("MinIO Test Error:", error);
-    return c.json({
-      statusCode: 500,
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-      config: {
-        endPoint: minioEndpoint,
-        port: minioPort,
-        useSSL: minioUseSSL,
-        bucketName: minioBucketName
-      }
-    }, 500);
-  }
-});
-
-router.post("/images", async (c) => {
   if (!minioEndpoint || !minioPort || !minioAccessKey || !minioSecretKey || !minioBucketName || !minioUseSSL) {
     return c.json({
       statusCode: 500,
