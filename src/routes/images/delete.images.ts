@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import type { HonoEnv } from "../../../lib/honoEnv.js";
 import * as Minio from "minio";
+import { PrismaClient } from "@prisma/client";
 
+const prisma = new PrismaClient();
 
  // Настройки MinIO из переменных окружения
  const minioEndpoint = process.env.MINIO_ENDPOINT || '194.163.151.11';
@@ -15,7 +17,7 @@ import * as Minio from "minio";
 const router = new Hono<HonoEnv>();
 
 router.delete("/images/:imageId", async (c) => {
-  const imageUrl = c.req.param("imageUrl");
+  const imageId = c.req.param("imageId");
 
   try {
     // Инициализируем MinIO клиент
@@ -27,17 +29,20 @@ router.delete("/images/:imageId", async (c) => {
       secretKey: minioSecretKey,
     });
 
-   
+    // Получаем запись изображения из базы данных
+    const imageRecord = await prisma.articleImages.findUnique({
+      where: { id: imageId },
+    });
     
-    if(!imageUrl){
+    if (!imageRecord) {
       return c.json(
-        { statusCode: 404, statusMessage: "Image not found", error: "Image not found" },
+        { success: false, error: "Изображение не найдено в базе данных" },
         404
       );
     }
     
     // Извлекаем имя файла из URL
-    const urlObj = new URL(imageUrl);
+    const urlObj = new URL(imageRecord.url);
     const pathParts = urlObj.pathname.split('/');
     const fileName = pathParts.slice(-2).join('/'); // articleId/filename
     

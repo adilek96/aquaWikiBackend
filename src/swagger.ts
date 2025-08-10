@@ -89,6 +89,17 @@ const ErrorResponseSchema = z.object({
   error: z.string()
 })
 
+const ImageUploadResponseSchema = z.object({
+  statusCode: z.number(),
+  imageUrl: z.string().url()
+})
+
+const ImageDeleteResponseSchema = z.object({
+  statusCode: z.number(),
+  success: z.boolean(),
+  message: z.string()
+})
+
 // Создаем OpenAPI спецификацию
 const openApiConfig = {
   openapi: '3.0.0',
@@ -105,6 +116,7 @@ const openApiConfig = {
 - **Подкатегории**: Управление подкатегориями с привязкой к категориям
 - **Статьи**: Полноценное управление статьями с переводами, изображениями и связями many-to-many с подкатегориями
 - **Обитатели**: Управление информацией об обитателях аквариума с переводами
+- **Изображения**: Загрузка и удаление изображений в MinIO объектном хранилище
 - **Мультиязычность**: Поддержка трех языков (азербайджанский, русский, английский)
 - **Аутентификация**: Простая система токенов для безопасности
 
@@ -148,7 +160,9 @@ API использует Bearer токены для аутентификации
       ArticleResponse: ArticleResponseSchema,
       InhabitantResponse: InhabitantResponseSchema,
       SuccessResponse: SuccessResponseSchema,
-      ErrorResponse: ErrorResponseSchema
+      ErrorResponse: ErrorResponseSchema,
+      ImageUploadResponse: ImageUploadResponseSchema,
+      ImageDeleteResponse: ImageDeleteResponseSchema
     }
   },
   security: [
@@ -186,6 +200,10 @@ API использует Bearer токены для аутентификации
     {
       name: 'Inhabitants',
       description: 'Операции с обитателями аквариума'
+    },
+    {
+      name: 'Images',
+      description: 'Операции с изображениями (загрузка и удаление)'
     }
   ],
   paths: {
@@ -1224,6 +1242,147 @@ API использует Bearer токены для аутентификации
             content: {
               'application/json': {
                 schema: ErrorResponseSchema
+              }
+            }
+          },
+          '500': {
+            description: 'Ошибка сервера',
+            content: {
+              'application/json': {
+                schema: ErrorResponseSchema
+              }
+            }
+          }
+        }
+      }
+    },
+
+    // Изображения
+    '/images': {
+      post: {
+        tags: ['Images'],
+        summary: 'Загрузить изображение',
+        description: 'Загружает изображение в MinIO хранилище и возвращает presigned URL для доступа к файлу',
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  file: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Файл изображения (максимум 10MB)'
+                  }
+                },
+                required: ['file']
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Изображение успешно загружено',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    statusCode: { type: 'number', example: 200 },
+                    imageUrl: { 
+                      type: 'string', 
+                      format: 'uri',
+                      description: 'Presigned URL для доступа к изображению (действует 7 дней)',
+                      example: 'https://minio.example.com/bucket/image.jpg?signature=...'
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '400': {
+            description: 'Некорректный запрос',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    statusCode: { type: 'number', example: 400 },
+                    statusMessage: { type: 'string', example: 'Размер файла не должен превышать 10MB' },
+                    error: { type: 'string', example: 'Размер файла не должен превышать 10MB' }
+                  }
+                }
+              }
+            }
+          },
+          '404': {
+            description: 'Файл не найден',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    statusCode: { type: 'number', example: 404 },
+                    statusMessage: { type: 'string', example: 'File not found' },
+                    error: { type: 'string', example: 'File not found' }
+                  }
+                }
+              }
+            }
+          },
+          '500': {
+            description: 'Ошибка сервера',
+            content: {
+              'application/json': {
+                schema: ErrorResponseSchema
+              }
+            }
+          }
+        }
+      }
+    },
+    '/images/{imageId}': {
+      delete: {
+        tags: ['Images'],
+        summary: 'Удалить изображение',
+        description: 'Удаляет изображение из MinIO хранилища и базы данных по ID',
+        parameters: [
+          {
+            name: 'imageId',
+            in: 'path',
+            required: true,
+            description: 'ID изображения в базе данных',
+            schema: { type: 'string' }
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'Изображение успешно удалено',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    statusCode: { type: 'number', example: 200 },
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Изображение успешно удалено' }
+                  }
+                }
+              }
+            }
+          },
+          '404': {
+            description: 'Изображение не найдено',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: false },
+                    error: { type: 'string', example: 'Изображение не найдено в базе данных' }
+                  }
+                }
               }
             }
           },
