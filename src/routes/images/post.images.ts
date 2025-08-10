@@ -3,21 +3,22 @@ import type { HonoEnv } from "../../../lib/honoEnv.js";
 import * as Minio from "minio";
 
 
-
-
-
 const router = new Hono<HonoEnv>();
 
-
- 
-
-router.post("/images", async (c) => {
-  const minioEndpoint = process.env.MINIO_ENDPOINT;
+const minioEndpoint = process.env.MINIO_ENDPOINT;
 const minioPort = process.env.MINIO_PORT;
 const minioAccessKey = process.env.MINIO_ACCESS_KEY;
 const minioSecretKey = process.env.MINIO_SECRET_KEY;
 const minioBucketName = process.env.MINIO_BUCKET_NAME;
 const minioUseSSL = process.env.MINIO_USE_SSL;
+
+
+router.post("/images", async (c) => {
+  const formData = await c.req.formData();
+  const file = formData.get("file") as File;
+
+
+
 
   if (!minioEndpoint || !minioPort || !minioAccessKey || !minioSecretKey || !minioBucketName || !minioUseSSL) {
     return c.json({
@@ -28,9 +29,8 @@ const minioUseSSL = process.env.MINIO_USE_SSL;
   }
 
   try {
-    console.log("Начинаем обработку загрузки изображения...");
-    const formData = await c.req.formData();
-    const file = formData.get("file") as File;
+   
+   
 
     if (!file) {
       return c.json(
