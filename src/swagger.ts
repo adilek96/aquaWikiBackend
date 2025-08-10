@@ -1258,6 +1258,64 @@ API использует Bearer токены для аутентификации
     },
 
     // Изображения
+    '/images/test': {
+      get: {
+        tags: ['Images'],
+        summary: 'Тестирование подключения к MinIO',
+        description: 'Тестирует подключение к MinIO объектному хранилищу и возвращает информацию о конфигурации',
+        responses: {
+          '200': {
+            description: 'Подключение к MinIO успешно',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    statusCode: { type: 'number', example: 200 },
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Подключение к MinIO успешно' },
+                    bucketExists: { type: 'boolean', example: true },
+                    config: {
+                      type: 'object',
+                      properties: {
+                        endPoint: { type: 'string', example: '194.163.151.11' },
+                        port: { type: 'number', example: 9000 },
+                        useSSL: { type: 'boolean', example: false },
+                        bucketName: { type: 'string', example: 'aquarium-images' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '500': {
+            description: 'Ошибка подключения к MinIO',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    statusCode: { type: 'number', example: 500 },
+                    success: { type: 'boolean', example: false },
+                    error: { type: 'string', example: 'Connection refused' },
+                    config: {
+                      type: 'object',
+                      properties: {
+                        endPoint: { type: 'string', example: '194.163.151.11' },
+                        port: { type: 'number', example: 9000 },
+                        useSSL: { type: 'boolean', example: false },
+                        bucketName: { type: 'string', example: 'aquarium-images' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     '/images': {
       post: {
         tags: ['Images'],
