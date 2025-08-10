@@ -29,6 +29,9 @@ import getInhabitant from './routes/inhabitants/inhabitant/get.inhabitant.js'
 import patchInhabitant from './routes/inhabitants/inhabitant/patch.inhabitant.js'
 import deleteInhabitant from './routes/inhabitants/inhabitant/delete.inhabitant.js'
 
+import postImageRouter from '../src/routes/images/post.images.js'
+import deleteImageRouter from '../src/routes/images/delete.images.js'
+
 // Импорт Swagger
 import swaggerRouter from './routes/swagger.js'
 
@@ -94,6 +97,10 @@ app.route('/', getInhabitants)
 app.route('/', getInhabitant)
 app.route('/', patchInhabitant)
 app.route('/', deleteInhabitant)
+
+// Роутеры для изображений
+app.route('/', postImageRouter)
+app.route('/', deleteImageRouter)
 
 // Отключение Prisma Client при завершении работы приложения
 // Это важно для серверных сред, чтобы корректно закрыть соединения с БД.

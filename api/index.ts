@@ -48,6 +48,10 @@ import postArticleRouter from '../src/routes/articles/article/post.article.js'
 import patchArticleRouter from '../src/routes/articles/article/patch.article.js'
 import deleteArticleRouter from '../src/routes/articles/article/delete.article.js'
 
+
+import postImageRouter from '../src/routes/images/post.images.js'
+import deleteImageRouter from '../src/routes/images/delete.images.js'
+
 import generateTokensRouter from '../src/routes/tokens/generate.tokens.js'
 import swaggerRouter from '../src/routes/swagger.js'
 
@@ -67,6 +71,9 @@ app.route('/articles/article', getArticleRouter)
 app.route('/articles/article', postArticleRouter)
 app.route('/articles/article', patchArticleRouter)
 app.route('/articles/article', deleteArticleRouter)
+
+app.route('/images', postImageRouter)
+app.route('/images', deleteImageRouter)
 
 app.route('/tokens', generateTokensRouter)
 app.route('/', swaggerRouter)
