@@ -2,6 +2,9 @@ import { Hono } from "hono";
 import type { HonoEnv } from "../../../lib/honoEnv.js";
 import * as Minio from "minio";
 
+
+
+
 // Настройки MinIO из переменных окружения
 const minioEndpoint = process.env.MINIO_ENDPOINT;
 const minioPort = process.env.MINIO_PORT;
