@@ -32,4 +32,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:3000/').then(()=>process.exit(0)).catch(()=>process.exit(1))"
 
-CMD ["node", "dist/server.js"]
+# tsc включает в сборку и корневой lib/, из-за чего общий корень
+# смещается в корень проекта, а файлы ложатся в dist/src/, не в dist/.
+CMD ["node", "dist/src/server.js"]
