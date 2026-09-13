@@ -1,10 +1,25 @@
 // Конфигурация токенов для API
+function requireToken(name: 'ADMIN_TOKEN' | 'READ_TOKEN'): string {
+  const value = process.env[name]
+  if (!value) {
+    throw new Error(
+      `${name} не задан. Раньше здесь стояло значение по умолчанию — ` +
+      'при пустом окружении API открывался всем, кто знает эту строку из репозитория.'
+    )
+  }
+  return value
+}
+
 export const TOKENS = {
   // Админский токен - для создания, обновления, удаления
-  ADMIN: process.env.ADMIN_TOKEN || 'admin_secret_token_12345',
-  
+  get ADMIN() {
+    return requireToken('ADMIN_TOKEN')
+  },
+
   // Токен для чтения - для GET запросов
-  READ: process.env.READ_TOKEN || 'read_public_token_67890'
+  get READ() {
+    return requireToken('READ_TOKEN')
+  }
 }
 
 // Генерация новых токенов (для продакшена)
