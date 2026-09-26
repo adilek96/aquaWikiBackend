@@ -1,10 +1,20 @@
 // получение обитателя по ID
 import { Hono } from 'hono'
 import type { HonoEnv } from "../../../../lib/honoEnv.js";
-import { formatInhabitant } from '../../../lib/inhabitantFormat.js'
+import { formatInhabitant, relativesInclude } from '../../../lib/inhabitantFormat.js'
 import { refreshImageField } from '../../../lib/minio.js'
 
 const router = new Hono<HonoEnv>()
+
+type Relative = { id: string; title: string; imageUrl: string | null }
+
+/** Картинки вида и подвидов переподписываются так же, как у самого обитателя. */
+async function withRelatives<T extends { imageUrl: string; parent?: Relative | null; varieties?: Relative[] }>(item: T) {
+  const [self] = await refreshImageField([item])
+  const parent = item.parent ? (await refreshImageField([item.parent]))[0] : item.parent
+  const varieties = item.varieties ? await refreshImageField(item.varieties) : item.varieties
+  return { ...self, parent, varieties }
+}
 
 router.get('/inhabitants/inhabitant/:id', async (c) => {
   const prisma = c.get('prisma');
@@ -17,7 +27,8 @@ router.get('/inhabitants/inhabitant/:id', async (c) => {
     const inhabitant = await prisma.inhabitant.findUnique({
       where: { id },
       include: {
-        translations: all ? true : { where: { locale } }
+        translations: all ? true : { where: { locale } },
+        ...relativesInclude(locale)
       }
     });
 
@@ -30,11 +41,9 @@ router.get('/inhabitants/inhabitant/:id', async (c) => {
       statusMessage: "Success",
       // Ссылка переподписывается: в базе лежит подпись семидневной давности
       // и со старым хостом по http, который браузер блокирует на https
-      inhabitant: (
-        await refreshImageField([
-          formatInhabitant(inhabitant as any, locale, { sections: true, all }),
-        ])
-      )[0]
+      inhabitant: await withRelatives(
+        formatInhabitant(inhabitant as any, locale, { sections: true, all })
+      )
     });
 
   } catch (error) {

@@ -11,6 +11,9 @@ router.get('/inhabitants', async (c) => {
   const locale = c.req.query('locale') || 'ru'; // по умолчанию русский
   const type = c.req.query('type'); // опциональная фильтрация по типу
   const subtype = c.req.query('subtype');
+  // parents=1 — только виды, без подвидов (для списка на сайте)
+  const parentsOnly = c.req.query('parents') === '1';
+  const parentId = c.req.query('parentId');
   // all=1 — все переводы (для дашборда)
   const all = c.req.query('all') === '1';
 
@@ -24,11 +27,17 @@ router.get('/inhabitants', async (c) => {
     if (subtype) {
       whereClause.subtype = subtype;
     }
+    if (parentsOnly) {
+      whereClause.parentId = null;
+    } else if (parentId) {
+      whereClause.parentId = parentId;
+    }
 
     const inhabitants = await prisma.inhabitant.findMany({
       where: whereClause,
       include: {
-        translations: all ? true : { where: { locale } }
+        translations: all ? true : { where: { locale } },
+        _count: { select: { varieties: true } }
       }
     });
 

@@ -134,4 +134,11 @@ model Inhabitant {
   // Дополнительные фото: [{ url, credit?, sourceUrl? }]. credit обязателен
   // для снимков под CC BY / CC BY-SA — лицензия требует указать автора
   gallery      Json?
+  // Подвид / порода: ссылка на вид. Один уровень — у подвида своих подвидов нет.
+  // Пустые паспорт и разделы подвида сайт берёт у вида. Удаление вида удаляет подвиды.
+  parentId     String?
+  parent       Inhabitant?  @relation("Varieties", fields: [parentId], references: [id], onDelete: Cascade)
+  varieties    Inhabitant[] @relation("Varieties")
+
+  @@index([parentId])
 }

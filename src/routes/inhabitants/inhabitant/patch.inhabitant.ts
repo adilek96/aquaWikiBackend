@@ -13,6 +13,7 @@ import {
   profileSchema,
   translationSchema,
 } from '../../../lib/inhabitantProfile.js'
+import { checkParent } from '../../../lib/inhabitantParent.js'
 
 const optionalUrl = z.string().url().or(z.literal('')).optional()
 
@@ -29,7 +30,9 @@ const patchValidation = z.object({
   articleUrl: optionalUrl,
   // null — очистить паспорт целиком
   profile: profileSchema.nullable().optional(),
-  gallery: gallerySchema.nullable().optional()
+  gallery: gallerySchema.nullable().optional(),
+  // Подвид: id вида. null — сделать самостоятельным видом
+  parentId: z.string().min(1).nullable().optional()
 })
 
 const router = new Hono<HonoEnv>()
@@ -38,7 +41,7 @@ router.patch('/inhabitants/inhabitant', adminAuth, zValidator('json', patchValid
   const prisma = c.get('prisma');
 
   try {
-    const { id, type, subtype, translations, imageUrl, articleUrl, profile, gallery } = c.req.valid('json');
+    const { id, type, subtype, translations, imageUrl, articleUrl, profile, gallery, parentId } = c.req.valid('json');
 
     // Проверка, существует ли обитатель
     const existingInhabitant = await prisma.inhabitant.findUnique({
@@ -57,6 +60,15 @@ router.patch('/inhabitants/inhabitant', adminAuth, zValidator('json', patchValid
     if (profile !== undefined) {
       const cleaned = profile ? cleanProfile(profile) : null;
       updateData.profile = cleaned ?? Prisma.DbNull;
+    }
+    if (parentId !== undefined) {
+      if (parentId) {
+        const problem = await checkParent(prisma, parentId, id);
+        if (problem) return c.json({ statusCode: 400, statusMessage: 'Bad Request', error: problem }, 400);
+        updateData.parent = { connect: { id: parentId } };
+      } else {
+        updateData.parent = { disconnect: true };
+      }
     }
     if (gallery !== undefined) {
       updateData.gallery = gallery?.length ? gallery : Prisma.DbNull;

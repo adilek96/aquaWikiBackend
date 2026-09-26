@@ -12,6 +12,7 @@ import {
   profileSchema,
   translationSchema,
 } from '../../../lib/inhabitantProfile.js'
+import { checkParent } from '../../../lib/inhabitantParent.js'
 
 // Картинка и ссылка на статью необязательны: раньше без них обитателя
 // нельзя было создать вовсе, а дашборд подставлял localhost
@@ -28,7 +29,9 @@ const postValidation = z.object({
   imageUrl: optionalUrl,
   articleUrl: optionalUrl,
   profile: profileSchema.nullable().optional(),
-  gallery: gallerySchema.nullable().optional()
+  gallery: gallerySchema.nullable().optional(),
+  // Подвид: id вида. null — сделать самостоятельным видом
+  parentId: z.string().min(1).nullable().optional()
 })
 
 const router = new Hono<HonoEnv>()
@@ -40,6 +43,11 @@ router.post('/inhabitants/inhabitant', adminAuth, zValidator('json', postValidat
     const body = c.req.valid('json')
     const profile = body.profile ? cleanProfile(body.profile) : null
 
+    if (body.parentId) {
+      const problem = await checkParent(prisma, body.parentId)
+      if (problem) return c.json({ statusCode: 400, statusMessage: 'Bad Request', error: problem }, 400)
+    }
+
     const inhabitant = await prisma.inhabitant.create({
       data: {
         type: body.type,
@@ -48,6 +56,7 @@ router.post('/inhabitants/inhabitant', adminAuth, zValidator('json', postValidat
         articleUrl: body.articleUrl ?? '',
         ...(profile ? { profile } : {}),
         ...(body.gallery?.length ? { gallery: body.gallery } : {}),
+        ...(body.parentId ? { parent: { connect: { id: body.parentId } } } : {}),
         translations: {
           create: Object.entries(body.translations).map(([locale, value]) => ({
             locale,
