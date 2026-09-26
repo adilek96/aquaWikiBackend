@@ -56,6 +56,19 @@ export function objectKeyFromUrl(storedUrl: string): string | null {
   }
 }
 
+/**
+ * Дата, от которой считается подпись, округлённая до начала суток UTC.
+ *
+ * Без округления в подпись входит текущее время, и ссылка на одну и ту же
+ * картинку меняется на каждом запросе. Браузер считает её новым файлом и
+ * качает заново — картинки «перерисовываются» при каждом обновлении
+ * страницы. С округлением ссылка одинакова в течение суток и кэшируется.
+ */
+function signingDate(): Date {
+  const now = new Date()
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+}
+
 /** Свежая подпись на тот же объект. При любой заминке возвращает исходную ссылку. */
 export async function refreshImageUrl(storedUrl: string | null): Promise<string | null> {
   if (!storedUrl) return storedUrl
@@ -66,7 +79,14 @@ export async function refreshImageUrl(storedUrl: string | null): Promise<string 
   if (!key) return storedUrl
 
   try {
-    return await minio.presignedGetObject(bucket(), key, PRESIGNED_TTL_SECONDS)
+    return await minio.presignedGetObject(
+      bucket(),
+      key,
+      PRESIGNED_TTL_SECONDS,
+      // Разрешаем браузеру держать картинку в кэше сутки
+      { 'response-cache-control': 'public, max-age=86400, immutable' },
+      signingDate()
+    )
   } catch {
     // Не роняем выдачу из-за одной картинки
     return storedUrl
