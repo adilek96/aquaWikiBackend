@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import type { HonoEnv } from "../../../lib/honoEnv.js";
+import { refreshImageUrls } from '../../lib/minio.js'
 
 const router = new Hono<HonoEnv>()
 
@@ -36,7 +37,7 @@ router.get('/articles', async (c) => {
     })
 
     // Форматируем ответ
-    const formattedArticles = articles.map((article: any) => {
+    const formattedArticles = await Promise.all(articles.map(async (article: any) => {
       const translation = article.translations[0] || {}
       return {
         id: article.id,
@@ -47,13 +48,18 @@ router.get('/articles', async (c) => {
           title: subCat.translations[0]?.title || '',
           description: subCat.translations[0]?.description || ''
         })),
-        images: article.articleImages.map((img: any) => ({
-          id: img.id,
-          url: img.url,
-          uploadedAt: img.uploadedAt
-        }))
+        // Подпись ссылки живёт 7 дней, а в базе она хранится постоянно:
+        // без переподписи картинки отваливаются через неделю, а старые
+        // ссылки ещё и указывают на http, что браузер блокирует на https
+        images: await refreshImageUrls(
+          article.articleImages.map((img: any) => ({
+            id: img.id,
+            url: img.url,
+            uploadedAt: img.uploadedAt
+          }))
+        )
       }
-    })
+    }))
 
     return c.json({
       statusCode: 200,

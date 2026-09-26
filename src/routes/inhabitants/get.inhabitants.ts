@@ -2,6 +2,7 @@
 import { Hono } from 'hono'
 import type { HonoEnv } from "../../../lib/honoEnv.js";
 import { formatInhabitant } from '../../lib/inhabitantFormat.js'
+import { refreshImageField } from '../../lib/minio.js'
 
 const router = new Hono<HonoEnv>()
 
@@ -39,7 +40,9 @@ router.get('/inhabitants', async (c) => {
     return c.json({
       statusCode: 200,
       statusMessage: "Success",
-      inhabitants: formattedInhabitants
+      // Ссылки переподписываем: в базе лежат подписи семидневной давности
+      // и со старым хостом по http, который браузер блокирует на https
+      inhabitants: await refreshImageField(formattedInhabitants)
     });
 
   } catch (error) {
