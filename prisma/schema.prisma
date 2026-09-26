@@ -131,4 +131,7 @@ model Inhabitant {
   // Паспорт: температура, pH, сложность и т.д. JSON, чтобы новое поле
   // не требовало миграции; состав и проверка — src/lib/inhabitantProfile.ts
   profile      Json?
+  // Дополнительные фото: [{ url, credit?, sourceUrl? }]. credit обязателен
+  // для снимков под CC BY / CC BY-SA — лицензия требует указать автора
+  gallery      Json?
 }

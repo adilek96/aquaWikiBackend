@@ -11,6 +11,7 @@ type InhabitantRow = {
   imageUrl: string
   articleUrl: string
   profile: unknown
+  gallery?: unknown
   translations: TranslationRow[]
 }
 
@@ -40,6 +41,7 @@ export function formatInhabitant(
     imageUrl: inhabitant.imageUrl,
     articleUrl: inhabitant.articleUrl,
     profile: inhabitant.profile ?? null,
+    gallery: inhabitant.gallery ?? [],
     ...(options.sections ? { sections: sectionsOf(translation) } : {}),
     ...(options.all
       ? {

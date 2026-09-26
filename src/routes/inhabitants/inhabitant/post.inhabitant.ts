@@ -8,6 +8,7 @@ import {
   AQUARIUM_TYPES,
   cleanProfile,
   cleanSections,
+  gallerySchema,
   profileSchema,
   translationSchema,
 } from '../../../lib/inhabitantProfile.js'
@@ -26,7 +27,8 @@ const postValidation = z.object({
   }),
   imageUrl: optionalUrl,
   articleUrl: optionalUrl,
-  profile: profileSchema.nullable().optional()
+  profile: profileSchema.nullable().optional(),
+  gallery: gallerySchema.nullable().optional()
 })
 
 const router = new Hono<HonoEnv>()
@@ -45,6 +47,7 @@ router.post('/inhabitants/inhabitant', adminAuth, zValidator('json', postValidat
         imageUrl: body.imageUrl ?? '',
         articleUrl: body.articleUrl ?? '',
         ...(profile ? { profile } : {}),
+        ...(body.gallery?.length ? { gallery: body.gallery } : {}),
         translations: {
           create: Object.entries(body.translations).map(([locale, value]) => ({
             locale,

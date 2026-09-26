@@ -98,6 +98,19 @@ export const translationSchema = z.object({
 
 export const AQUARIUM_TYPES = ['FRESHWATER', 'SALTWATER', 'PALUDARIUM'] as const
 
+/** Галерея обитателя: подпись с автором и ссылка на источник для чужих фото. */
+export const gallerySchema = z
+  .array(
+    z
+      .object({
+        url: z.string().url(),
+        credit: z.string().trim().max(300).optional(),
+        sourceUrl: z.string().url().optional(),
+      })
+      .strict()
+  )
+  .max(12)
+
 /** Пустые строки и пустые диапазоны не храним: иначе «заполнено» нельзя отличить от «пусто». */
 export function cleanProfile(profile: InhabitantProfile): InhabitantProfile | null {
   const out: Record<string, unknown> = {}

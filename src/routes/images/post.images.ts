@@ -1,6 +1,9 @@
 import { Hono } from "hono";
 import type { HonoEnv } from "../../../lib/honoEnv.js";
 import * as Minio from "minio";
+// Загрузка и удаление — только с админским токеном: раньше любой мог
+// класть файлы в хранилище и удалять их по id
+import { adminAuth } from "../../middleware/auth.js";
 
 
 const router = new Hono<HonoEnv>();
@@ -12,7 +15,7 @@ const minioSecretKey = process.env.MINIO_SECRET_KEY;
 const minioBucketName = process.env.MINIO_BUCKET_NAME;
 const minioUseSSL = process.env.MINIO_USE_SSL;
 
-router.post("/images", async (c) => {
+router.post("/images", adminAuth, async (c) => {
   try {
     // Проверяем Content-Type
     const contentType = c.req.header("content-type");

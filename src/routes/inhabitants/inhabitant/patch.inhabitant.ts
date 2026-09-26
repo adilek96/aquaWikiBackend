@@ -9,6 +9,7 @@ import {
   AQUARIUM_TYPES,
   cleanProfile,
   cleanSections,
+  gallerySchema,
   profileSchema,
   translationSchema,
 } from '../../../lib/inhabitantProfile.js'
@@ -27,7 +28,8 @@ const patchValidation = z.object({
   imageUrl: optionalUrl,
   articleUrl: optionalUrl,
   // null — очистить паспорт целиком
-  profile: profileSchema.nullable().optional()
+  profile: profileSchema.nullable().optional(),
+  gallery: gallerySchema.nullable().optional()
 })
 
 const router = new Hono<HonoEnv>()
@@ -36,7 +38,7 @@ router.patch('/inhabitants/inhabitant', adminAuth, zValidator('json', patchValid
   const prisma = c.get('prisma');
 
   try {
-    const { id, type, subtype, translations, imageUrl, articleUrl, profile } = c.req.valid('json');
+    const { id, type, subtype, translations, imageUrl, articleUrl, profile, gallery } = c.req.valid('json');
 
     // Проверка, существует ли обитатель
     const existingInhabitant = await prisma.inhabitant.findUnique({
@@ -55,6 +57,9 @@ router.patch('/inhabitants/inhabitant', adminAuth, zValidator('json', patchValid
     if (profile !== undefined) {
       const cleaned = profile ? cleanProfile(profile) : null;
       updateData.profile = cleaned ?? Prisma.DbNull;
+    }
+    if (gallery !== undefined) {
+      updateData.gallery = gallery?.length ? gallery : Prisma.DbNull;
     }
 
     await prisma.$transaction(async (tx) => {
