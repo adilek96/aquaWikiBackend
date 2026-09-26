@@ -82,14 +82,32 @@ export async function refreshImageUrls<T extends { url: string }>(
   )
 }
 
-/** Переподписывает одиночное поле imageUrl у объекта или списка объектов. */
-export async function refreshImageField<T extends { imageUrl?: string | null }>(
-  items: T[]
-): Promise<T[]> {
+/**
+ * Переподписывает картинки обитателя: главное фото и галерею.
+ *
+ * Галерею тоже нужно подписывать: в базе у неё лежат такие же временные
+ * ссылки, и без обновления снимки отдаются с 403 — хранилище не пускает
+ * запрос без подписи.
+ */
+export async function refreshImageField<
+  T extends { imageUrl?: string | null; gallery?: unknown }
+>(items: T[]): Promise<T[]> {
   return Promise.all(
-    items.map(async (item) => ({
-      ...item,
-      imageUrl: (await refreshImageUrl(item.imageUrl ?? null)) ?? item.imageUrl,
-    }))
+    items.map(async (item) => {
+      const gallery = Array.isArray(item.gallery)
+        ? await Promise.all(
+            (item.gallery as Array<{ url?: string }>).map(async (g) => ({
+              ...g,
+              url: g?.url ? ((await refreshImageUrl(g.url)) ?? g.url) : g?.url,
+            }))
+          )
+        : item.gallery
+
+      return {
+        ...item,
+        imageUrl: (await refreshImageUrl(item.imageUrl ?? null)) ?? item.imageUrl,
+        ...(item.gallery !== undefined ? { gallery } : {}),
+      }
+    })
   )
 }
