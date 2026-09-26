@@ -39,6 +39,7 @@ import swaggerRouter from './routes/swagger.js'
 import tokenRouter from './routes/tokens/generate.tokens.js'
 
 import { cors } from 'hono/cors'
+import { cacheMiddleware } from './lib/cache.js'
 
 
 interface HonoEnv {
@@ -61,6 +62,10 @@ app.use('*', cors({
 }))
 
 app.use(prismaMidleware) 
+
+// Кэш ответов: GET отдаются из Redis, любая успешная запись его сбрасывает.
+// Стоит после prisma, чтобы обработчики получали клиента как раньше.
+app.use('*', cacheMiddleware)
 
 app.get('/', (c) => {
   return c.text('AquaWiki API - Добро пожаловать! Документация доступна по адресу: /docs')
