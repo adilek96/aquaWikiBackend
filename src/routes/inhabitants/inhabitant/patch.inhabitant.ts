@@ -4,33 +4,39 @@ import { Hono } from 'hono'
 import type { HonoEnv } from "../../../../lib/honoEnv.js";
 import { zValidator } from '@hono/zod-validator';
 import { adminAuth } from '../../../middleware/auth.js';
+import { Prisma } from '@prisma/client'
+import {
+  AQUARIUM_TYPES,
+  cleanProfile,
+  cleanSections,
+  profileSchema,
+  translationSchema,
+} from '../../../lib/inhabitantProfile.js'
 
-// валидируем данные через зод 
-const translationSchema = z.object({
-  title: z.string()
-})
+const optionalUrl = z.string().url().or(z.literal('')).optional()
 
 const patchValidation = z.object({
   id: z.string(),
-  type: z.array(z.string()).optional(),
+  type: z.array(z.enum(AQUARIUM_TYPES)).min(1).optional(),
   subtype: z.string().optional(),
   translations: z.object({
     az: translationSchema,
     ru: translationSchema,
     en: translationSchema
   }).optional(),
-  imageUrl: z.string().url().optional(),
-  articleUrl: z.string().url().optional()
+  imageUrl: optionalUrl,
+  articleUrl: optionalUrl,
+  // null — очистить паспорт целиком
+  profile: profileSchema.nullable().optional()
 })
 
 const router = new Hono<HonoEnv>()
 
 router.patch('/inhabitants/inhabitant', adminAuth, zValidator('json', patchValidation), async (c) => {
-  const prisma = c.get('prisma'); 
+  const prisma = c.get('prisma');
 
   try {
-    const body = await c.req.json();
-    const { id, type, subtype, translations, imageUrl, articleUrl } = body;
+    const { id, type, subtype, translations, imageUrl, articleUrl, profile } = c.req.valid('json');
 
     // Проверка, существует ли обитатель
     const existingInhabitant = await prisma.inhabitant.findUnique({
@@ -41,48 +47,41 @@ router.patch('/inhabitants/inhabitant', adminAuth, zValidator('json', patchValid
       return c.json({ statusCode: 404, statusMessage: "Inhabitant not found" }, 404);
     }
 
-    // Обновляем основные данные обитателя
-    const updateData: any = {};
+    const updateData: Prisma.InhabitantUpdateInput = {};
     if (type !== undefined) updateData.type = type;
     if (subtype !== undefined) updateData.subtype = subtype;
     if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
     if (articleUrl !== undefined) updateData.articleUrl = articleUrl;
-
-    if (Object.keys(updateData).length > 0) {
-      await prisma.inhabitant.update({
-        where: { id },
-        data: updateData
-      });
+    if (profile !== undefined) {
+      const cleaned = profile ? cleanProfile(profile) : null;
+      updateData.profile = cleaned ?? Prisma.DbNull;
     }
 
-    // Обновляем переводы, если указаны
-    if (translations) {
+    await prisma.$transaction(async (tx) => {
+      if (Object.keys(updateData).length > 0) {
+        await tx.inhabitant.update({ where: { id }, data: updateData });
+      }
+
+      if (!translations) return;
+
       for (const [locale, value] of Object.entries(translations)) {
-        const v = value as { title: string };
-        const existingTranslation = await prisma.translationInhabitant.findFirst({
+        const data = { title: value.title, ...cleanSections(value) };
+        const existingTranslation = await tx.translationInhabitant.findFirst({
           where: { inhabitantId: id, locale }
         });
 
         if (existingTranslation) {
-          // обновляем
-          await prisma.translationInhabitant.update({
+          await tx.translationInhabitant.update({
             where: { id: existingTranslation.id },
-            data: {
-              title: v.title
-            }
+            data
           });
         } else {
-          // создаём новый
-          await prisma.translationInhabitant.create({
-            data: {
-              inhabitantId: id,
-              locale,
-              title: v.title
-            }
+          await tx.translationInhabitant.create({
+            data: { inhabitantId: id, locale, ...data }
           });
         }
       }
-    }
+    });
 
     return c.json({ statusCode: 200, statusMessage: "Updated", inhabitantId: id });
 

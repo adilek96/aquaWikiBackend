@@ -1,13 +1,17 @@
 // получение списка обитателей
 import { Hono } from 'hono'
 import type { HonoEnv } from "../../../lib/honoEnv.js";
+import { formatInhabitant } from '../../lib/inhabitantFormat.js'
 
 const router = new Hono<HonoEnv>()
 
 router.get('/inhabitants', async (c) => {
-  const prisma = c.get('prisma'); 
+  const prisma = c.get('prisma');
   const locale = c.req.query('locale') || 'ru'; // по умолчанию русский
   const type = c.req.query('type'); // опциональная фильтрация по типу
+  const subtype = c.req.query('subtype');
+  // all=1 — все переводы (для дашборда)
+  const all = c.req.query('all') === '1';
 
   try {
     const whereClause: any = {};
@@ -16,34 +20,26 @@ router.get('/inhabitants', async (c) => {
         has: type
       };
     }
+    if (subtype) {
+      whereClause.subtype = subtype;
+    }
 
     const inhabitants = await prisma.inhabitant.findMany({
       where: whereClause,
       include: {
-        translations: {
-          where: { locale }
-        }
+        translations: all ? true : { where: { locale } }
       }
     });
 
-    // Форматируем ответ
-    const formattedInhabitants = inhabitants.map((inhabitant: any) => {
-      const translation = inhabitant.translations[0] || {};
-      
-      return {
-        id: inhabitant.id,
-        type: inhabitant.type,
-        subtype: inhabitant.subtype,
-        title: translation.title || '',
-        imageUrl: inhabitant.imageUrl,
-        articleUrl: inhabitant.articleUrl
-      };
-    });
+    // Разделы в списке не нужны — они большие, а карточке хватает паспорта
+    const formattedInhabitants = inhabitants.map((inhabitant: any) =>
+      formatInhabitant(inhabitant, locale, { sections: false, all })
+    );
 
-    return c.json({ 
-      statusCode: 200, 
-      statusMessage: "Success", 
-      inhabitants: formattedInhabitants 
+    return c.json({
+      statusCode: 200,
+      statusMessage: "Success",
+      inhabitants: formattedInhabitants
     });
 
   } catch (error) {

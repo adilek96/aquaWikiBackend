@@ -106,6 +106,17 @@ model TranslationInhabitant {
   id           String     @id @default(cuid())
   locale       String
   title        String
+  // Текстовые разделы статьи об обитателе, одинаковые у всех —
+  // список и подписи в src/lib/inhabitantProfile.ts
+  otherNames    String?
+  origin        String?
+  overview      String?
+  appearance    String?
+  care          String?
+  feeding       String?
+  compatibility String?
+  breeding      String?
+  facts         String?
   inhabitant   Inhabitant @relation(fields: [inhabitantId], references: [id], onDelete: Cascade)
   inhabitantId String
 }
@@ -117,4 +128,7 @@ model Inhabitant {
   translations TranslationInhabitant[]
   imageUrl     String
   articleUrl   String
+  // Паспорт: температура, pH, сложность и т.д. JSON, чтобы новое поле
+  // не требовало миграции; состав и проверка — src/lib/inhabitantProfile.ts
+  profile      Json?
 }

@@ -1,21 +1,22 @@
 // получение обитателя по ID
 import { Hono } from 'hono'
 import type { HonoEnv } from "../../../../lib/honoEnv.js";
+import { formatInhabitant } from '../../../lib/inhabitantFormat.js'
 
 const router = new Hono<HonoEnv>()
 
 router.get('/inhabitants/inhabitant/:id', async (c) => {
-  const prisma = c.get('prisma'); 
+  const prisma = c.get('prisma');
   const id = c.req.param('id');
   const locale = c.req.query('locale') || 'ru'; // по умолчанию русский
+  // all=1 — все переводы с разделами (для формы редактирования в дашборде)
+  const all = c.req.query('all') === '1';
 
   try {
     const inhabitant = await prisma.inhabitant.findUnique({
       where: { id },
       include: {
-        translations: {
-          where: { locale }
-        }
+        translations: all ? true : { where: { locale } }
       }
     });
 
@@ -23,22 +24,10 @@ router.get('/inhabitants/inhabitant/:id', async (c) => {
       return c.json({ statusCode: 404, statusMessage: "Inhabitant not found" }, 404);
     }
 
-    // Форматируем ответ
-    const translation = inhabitant.translations[0] || {};
-    
-    const formattedInhabitant = {
-      id: inhabitant.id,
-      type: inhabitant.type,
-      subtype: inhabitant.subtype,
-      title: translation.title || '',
-      imageUrl: inhabitant.imageUrl,
-      articleUrl: inhabitant.articleUrl
-    };
-
-    return c.json({ 
-      statusCode: 200, 
-      statusMessage: "Success", 
-      inhabitant: formattedInhabitant 
+    return c.json({
+      statusCode: 200,
+      statusMessage: "Success",
+      inhabitant: formatInhabitant(inhabitant as any, locale, { sections: true, all })
     });
 
   } catch (error) {
